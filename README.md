@@ -14,6 +14,10 @@ Download, unpack, run. Bundled Windows and Linux binaries are provided
 in Releases section, Mac users will have to use cross-platform version 
 (Java 24+ is required)
 
+Or run it with JBang on any platform:
+
+`jbang --java 24 https://github.com/scf37/spacemonger1/releases/latest/spacemonger1.jar`
+
 ### FIRST-TIME INSTRUCTIONS
 
 SpaceMonger is not a hard program to use.  In fact, you probably won't
