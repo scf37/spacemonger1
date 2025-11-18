@@ -12,7 +12,7 @@ public class LangService {
 
     public LangService() {
         Properties props = new Properties();
-        try (InputStream is = LangService.class.getResourceAsStream("/spacemonger1.properties")) {
+        try (InputStream is = LangService.class.getClassLoader().getResourceAsStream("spacemonger1.properties")) {
             if (is == null) {
                 throw new IllegalArgumentException("Resource not found: /spacemonger1.properties");
             }

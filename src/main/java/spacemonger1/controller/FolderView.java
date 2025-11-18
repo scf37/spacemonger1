@@ -708,16 +708,27 @@ public class FolderView {
 
         repaint();
     }
+
     private void onMouseMove(MouseEvent e) {
         Point point = e.getPoint();
         DisplayFolder cur = GetDisplayFolderFromPoint(point);
 
         if (appCommands.settings().rollover_box()) {
             hightlightPathPoint = point;
+
+            // Swing can produce hundreds mouse events per sec, lets limit repaint rate to 30 fps.
+            if (repaintLimitTimer == null) {
+                repaintLimitTimer = new Timer(1000 / 30, _ -> {
+                    repaint();
+                    repaintLimitTimer = null;
+                });
+                repaintLimitTimer.setRepeats(false);
+                repaintLimitTimer.start();
+            }
         } else {
             hightlightPathPoint = null;
         }
-        repaint();
+
         if (appCommands.settings().show_info_tips()) {
             if (cur == null) {
                 m_infotipwnd.enableWindow(false);
@@ -1340,6 +1351,9 @@ public class FolderView {
     private Rectangle animEnd;
     private int animStep = -1; // -1 = inactive, 0–15 = active
     private Runnable animOnComplete;
+
+    // timer to limit repaint rate
+    private Timer repaintLimitTimer = null;
 
     private final Font minifont = new Font("SansSerif", Font.PLAIN, 9);
     private final AppCommands appCommands;

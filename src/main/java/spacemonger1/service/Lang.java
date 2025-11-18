@@ -50,8 +50,8 @@ public class Lang {
 
     public static Lang load(String langCode) {
         Properties props = new Properties();
-        String resourceName = "/lang_" + langCode + ".properties";
-        try (InputStream is = Lang.class.getResourceAsStream(resourceName)) {
+        String resourceName = "lang_" + langCode + ".properties";
+        try (InputStream is = Lang.class.getClassLoader().getResourceAsStream(resourceName)) {
             if (is == null) {
                 throw new RuntimeException("Language file not found: " + resourceName);
             }
