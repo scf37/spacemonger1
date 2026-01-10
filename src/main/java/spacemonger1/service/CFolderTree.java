@@ -4,8 +4,10 @@ import spacemonger1.controller.Drive;
 import spacemonger1.fs.FileInfo;
 import spacemonger1.fs.FileSystems;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 public class CFolderTree {
     public final FileSystems fileSystems;
@@ -33,7 +35,18 @@ public class CFolderTree {
         usedspace = drive.usedspace();
         freespace = totalspace - usedspace;
 
-        root.LoadFolderInitial(this, mPath, clustersize); // TODO if-else ?
+        int poolSize = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
+        pool = new ForkJoinPool(poolSize);
+        try {
+            root.LoadFolderInitial(this, mPath, clustersize); // TODO if-else ?
+        } finally {
+            pool.shutdown();
+            try {
+                pool.awaitTermination(1, TimeUnit.MINUTES);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }
 
         root.AddFile(this, "<<<<<<<<<<<<<<<<<<<<", freespace, freespace, 0);
         root.Finalize();
@@ -85,6 +98,7 @@ public class CFolderTree {
 
     protected CFolder root;
     protected CFolder cur;
+    private ForkJoinPool pool;
 
     public String mPath;
     public long freespace;
@@ -95,5 +109,9 @@ public class CFolderTree {
     public long numfolders; // TODO set from the dialog
     public long filespace;
 
-    public Set<FileInfo.Id> knownFiles = new HashSet<>();
+    public Set<FileInfo.Id> knownFiles = ConcurrentHashMap.newKeySet();
+
+    ForkJoinPool pool() {
+        return pool;
+    }
 }

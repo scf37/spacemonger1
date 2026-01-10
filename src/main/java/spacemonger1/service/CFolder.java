@@ -4,13 +4,15 @@ import spacemonger1.fs.FileInfo;
 import spacemonger1.fs.Volume;
 
 import java.io.IOException;
-import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinTask;
 import java.util.stream.Collectors;
 
 public class CFolder {
@@ -169,6 +171,9 @@ public class CFolder {
             }
             Collections.sort(list);
 
+            record ChildJob(String name, ForkJoinTask<CFolder> task, long modified) { }
+            List<ChildJob> childJobs = new ArrayList<>();
+
             list.forEach(file -> {
                 if (tree.cancelled) throw new CancellationException();
                 String fileName = file.getFileName().toString();
@@ -185,14 +190,26 @@ public class CFolder {
                     if (!info.volumeId().equals(volumeId)) return;
 
                     CFolder newFolder = new CFolder();
-                    newFolder.LoadFolder(tree, file.toString(), volumeId);
-                    AddFolder(tree, fileName, newFolder, info.updateTimeMs());
+                    ForkJoinTask<CFolder> task = ForkJoinTask.adapt(() -> {
+                        newFolder.LoadFolder(tree, file.toString(), volumeId);
+                        return newFolder;
+                    });
+                    tree.pool().execute(task);
+                    childJobs.add(new ChildJob(fileName, task, info.updateTimeMs()));
                 } else if (info.isFile()) {
                     long actualsize = info.logicalSize();
                     long size = info.physicalSize();
                     AddFile(tree, fileName, size, actualsize, info.updateTimeMs());
                 }
             });
+
+            for (ChildJob job : childJobs) {
+                if (tree.cancelled) break;
+                CFolder loaded = job.task().join();
+                if (loaded != null) {
+                    AddFolder(tree, job.name(), loaded, job.modified());
+                }
+            }
         } catch (IOException e) {
         } catch (CancellationException e) {
         } finally {
@@ -224,5 +241,5 @@ public class CFolder {
     public int cur;
     public int max;
 
-    private static volatile long lastStatus = System.nanoTime();
+    private volatile long lastStatus = System.nanoTime();
 }
