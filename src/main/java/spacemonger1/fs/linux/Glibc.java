@@ -106,12 +106,4 @@ public class Glibc {
             return null;
         }
     }
-
-    public static void main(String[] args) throws Throwable {
-        System.out.println(stat("/tmp/1/file"));
-        System.out.println(stat("/tmp/1/hard"));
-        System.out.println(stat("/tmp/1/dir"));
-        System.out.println(stat("/tmp/1/soft"));
-        System.out.println(stat("/tmp/1/soft/file"));
-    }
 }

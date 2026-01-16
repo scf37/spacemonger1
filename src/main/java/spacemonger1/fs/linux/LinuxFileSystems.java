@@ -2,13 +2,19 @@ package spacemonger1.fs.linux;
 
 import spacemonger1.fs.Common;
 import spacemonger1.fs.FileInfo;
+import spacemonger1.fs.FileSystems;
 import spacemonger1.fs.Volume;
 
+import java.awt.Desktop;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,27 +23,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.stream.Collectors;
+
 // --- Implementations below ---
 
-public final class LinuxFileSystems implements spacemonger1.fs.FileSystems {
-
-    private static final Set<String> KNOWN_PHYSICAL_FS = Set.of(
-        "ext2", "ext3", "ext4",
-        "xfs",
-        "btrfs",
-        "jfs",
-        "reiserfs",
-        "f2fs",
-        "ntfs", "ntfs3",
-        "vfat", "msdos",
-        "exfat", "fuseblk",
-        "hfs", "hfsplus",
-        "ufs",
-        "zfs",        // (if using ZFS on Linux)
-        "apfs",       // (rare on Linux, but possible)
-        "bcachefs"    // (new, but disk-backed)
-    ).stream().map(s -> " " + s + " ").collect(Collectors.toSet());
+public final class LinuxFileSystems implements FileSystems {
 
     private Map<LinuxVolumeId, LinuxVolumeId> volumeIdDedup = new HashMap<>();
 
@@ -60,7 +49,7 @@ public final class LinuxFileSystems implements spacemonger1.fs.FileSystems {
                 int devMinor = Integer.parseInt(deviceParts[1]);
 
                 // Skip pseudo filesystems that are not useful to users
-                boolean isVirtual = isVirtualFs(line);
+                boolean isVirtual = Common.hasVirtualFs(line);
 
                 if (!seenDevices.add(device)) {
                     // Already processed this device
@@ -89,13 +78,6 @@ public final class LinuxFileSystems implements spacemonger1.fs.FileSystems {
         return result;
     }
 
-    private static boolean isVirtualFs(String line) {
-        for (String fs: KNOWN_PHYSICAL_FS) {
-            if (line.contains(fs)) return false;
-        }
-        return true;
-    }
-
     @Override
     public FileInfo fileInfo(Path path) {
         Objects.requireNonNull(path);
@@ -116,7 +98,62 @@ public final class LinuxFileSystems implements spacemonger1.fs.FileSystems {
 
     @Override
     public void moveToTrash(Path path) {
-        Common.moveToTrash(path);
+        if (Desktop.getDesktop().isSupported(Desktop.Action.MOVE_TO_TRASH)) {
+            Desktop.getDesktop().moveToTrash(path.toFile());
+            return;
+        }
+
+        try {
+            if (new File("/usr/bin/gio").canExecute()) {
+                int res = new ProcessBuilder("gio", "trash", "--", path.toAbsolutePath().toString()).inheritIO().start().waitFor();
+                if (res != 0) throw new RuntimeException("Failed to delete file: " + path);
+                return;
+            }
+
+            Path home = Paths.get(System.getProperty("user.home"));
+            Path trash = home.resolve(".local/share/Trash");
+            Path filesDir = trash.resolve("files");
+            Path infoDir = trash.resolve("info");
+
+            Files.createDirectories(filesDir);
+            Files.createDirectories(infoDir);
+
+            String name = path.getFileName().toString();
+            Path destFile = filesDir.resolve(name);
+            Path infoFile = infoDir.resolve(name + ".trashinfo");
+
+            // Handle name collisions
+            int counter = 1;
+            while (Files.exists(destFile)) {
+                String base = stripExtension(name);
+                String ext = getExtension(name);
+                destFile = filesDir.resolve(base + "." + (counter++) + (ext.isEmpty() ? "" : "." + ext));
+                infoFile = infoDir.resolve(destFile.getFileName() + ".trashinfo");
+            }
+
+            Files.move(path, destFile);
+
+            // Create .trashinfo
+            String deletionDate = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            String originalPath = path.toAbsolutePath().toString();
+            String infoContent = "[Trash Info]\n" +
+                "Path=" + originalPath + "\n" +
+                "DeletionDate=" + deletionDate + "\n";
+
+            Files.write(infoFile, infoContent.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String stripExtension(String name) {
+        int dotIndex = name.lastIndexOf('.');
+        return (dotIndex == -1) ? name : name.substring(0, dotIndex);
+    }
+
+    private static String getExtension(String name) {
+        int dotIndex = name.lastIndexOf('.');
+        return (dotIndex == -1) ? "" : name.substring(dotIndex + 1);
     }
 
     private LinuxVolumeId newVolumeId(int devMajor, int devMinor) {

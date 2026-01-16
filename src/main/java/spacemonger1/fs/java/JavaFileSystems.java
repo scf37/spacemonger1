@@ -5,6 +5,7 @@ import spacemonger1.fs.FileInfo;
 import spacemonger1.fs.FileSystems;
 import spacemonger1.fs.Volume;
 
+import java.awt.Desktop;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -93,7 +94,11 @@ public class JavaFileSystems implements FileSystems {
 
     @Override
     public void moveToTrash(Path path) {
-        Common.moveToTrash(path);
+        if (Desktop.getDesktop().isSupported(Desktop.Action.MOVE_TO_TRASH)) {
+            Desktop.getDesktop().moveToTrash(path.toFile());
+            return;
+        }
+        throw new RuntimeException("Move to trash is not supported in this Java version. Use latest Oracle Java.");
     }
 
     private record RootInfo(

@@ -715,18 +715,17 @@ public class FolderView {
 
         if (appCommands.settings().rollover_box()) {
             hightlightPathPoint = point;
-
-            // Swing can produce hundreds mouse events per sec, lets limit repaint rate to 30 fps.
-            if (repaintLimitTimer == null) {
-                repaintLimitTimer = new Timer(1000 / 30, _ -> {
-                    repaint();
-                    repaintLimitTimer = null;
-                });
-                repaintLimitTimer.setRepeats(false);
-                repaintLimitTimer.start();
-            }
         } else {
             hightlightPathPoint = null;
+        }
+        // Swing can produce hundreds mouse events per sec, lets limit repaint rate to 30 fps.
+        if (repaintLimitTimer == null) {
+            repaintLimitTimer = new Timer(1000 / 30, _ -> {
+                repaint();
+                repaintLimitTimer = null;
+            });
+            repaintLimitTimer.setRepeats(false);
+            repaintLimitTimer.start();
         }
 
         if (appCommands.settings().show_info_tips()) {
