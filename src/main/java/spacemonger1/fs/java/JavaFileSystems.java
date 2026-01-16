@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedHashSet;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,30 +22,21 @@ public class JavaFileSystems implements FileSystems {
         Paths.get("/dev"),
         Paths.get("/proc")
     );
-    private static final Path macVolumesRoot = Paths.get("/Volumes");
     private List<RootInfo> roots = new ArrayList<>();
 
     @Override
     public List<Volume> volumes() {
-        List<Path> orderedRoots = new ArrayList<>();
-        LinkedHashSet<Path> unique = new LinkedHashSet<>();
+        List<Path> roots = new ArrayList<>();
+        java.nio.file.FileSystems.getDefault().getRootDirectories().forEach(roots::add);
 
-        Path home = Paths.get(System.getProperty("user.home"));
-        addIfUnique(unique, home, orderedRoots);
-
-        java.nio.file.FileSystems.getDefault().getRootDirectories().forEach(root -> addIfUnique(unique, root, orderedRoots));
-
-        if (isMacOs()) {
-            for (Path mount : listMacVolumes()) {
-                addIfUnique(unique, mount, orderedRoots);
-            }
+        if (roots.equals(List.of(Paths.get("/")))) {
+            roots.add(Paths.get(System.getProperty("user.home")));
         }
-
-        List<Volume> result = new ArrayList<>();
+        List<Volume> result = new ArrayList<Volume>();
 
         boolean fillRoots = this.roots.isEmpty();
 
-        for (Path root : orderedRoots) {
+        for (Path root : roots) {
             try {
                 FileStore store = Files.getFileStore(root);
                 var id = new JavaVolumeId(root);
@@ -119,31 +109,4 @@ public class JavaFileSystems implements FileSystems {
 
     private record JavaVolumeId(Path path) implements Volume.Id { }
     private record JavaFileId(Object key) implements FileInfo.Id { }
-
-    private boolean isMacOs() {
-        String osName = System.getProperty("os.name").toLowerCase();
-        return osName.contains("mac");
-    }
-
-    private List<Path> listMacVolumes() {
-        if (!Files.isDirectory(macVolumesRoot)) {
-            return List.of();
-        }
-
-        Set<Path> mounts = new LinkedHashSet<>();
-        try (var stream = Files.list(macVolumesRoot)) {
-            stream.filter(Files::isDirectory)
-                .filter(Files::isReadable)
-                .forEach(mounts::add);
-        } catch (Exception ignored) {
-        }
-        return new ArrayList<>(mounts);
-    }
-
-    private void addIfUnique(LinkedHashSet<Path> seen, Path path, List<Path> ordered) {
-        if (path == null) return;
-        if (seen.add(path)) {
-            ordered.add(path);
-        }
-    }
 }

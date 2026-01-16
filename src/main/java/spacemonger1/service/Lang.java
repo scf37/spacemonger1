@@ -37,6 +37,7 @@ public class Lang {
     public String[] attribnames;
     public String deleting;
     public String selectdrive;
+    public String browsefolder;
     public String scanning;
     public String settings;
     public String layout, density, bias, horz, equal, vert;
@@ -96,6 +97,7 @@ public class Lang {
         lang.digitcomma = props.getProperty("digitcomma").charAt(0);
         lang.deleting = props.getProperty("deleting");
         lang.selectdrive = props.getProperty("selectdrive");
+        lang.browsefolder = props.getProperty("browsefolder");
         lang.scanning = props.getProperty("scanning");
         lang.settings = props.getProperty("settings");
         lang.layout = props.getProperty("layout");
