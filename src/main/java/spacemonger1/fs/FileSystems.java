@@ -2,6 +2,7 @@ package spacemonger1.fs;
 
 import spacemonger1.fs.java.JavaFileSystems;
 import spacemonger1.fs.linux.LinuxFileSystems;
+import spacemonger1.fs.macos.MacFileSystems;
 import spacemonger1.fs.windows.WindowsFileSystems;
 
 import java.nio.file.Path;
@@ -16,9 +17,11 @@ public interface FileSystems {
         String osName = System.getProperty("os.name").toLowerCase();
         FileSystems fs = null;
 
-        if (osName.contains("linux"))
+        if (osName.contains("mac")) {
+            fs = new MacFileSystems();
+        } else if (osName.contains("linux")) {
             fs = new LinuxFileSystems();
-        else if (osName.contains("windows")) {
+        } else if (osName.contains("windows")) {
             fs = new WindowsFileSystems();
         }
 

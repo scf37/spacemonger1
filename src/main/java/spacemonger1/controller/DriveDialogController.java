@@ -53,27 +53,27 @@ public class DriveDialogController {
             }
         );
         JPanel content = new JPanel(null);
-        content.setPreferredSize(new Dimension(u.w(221), u.h(180)));
+        content.setPreferredSize(new Dimension(u.w(221), u.h(170)));
         dialog.setContentPane(content);
         dialog.setTitle(lang.selectdrive);
         listView.component().setBounds(u.w(7), u.h(5), u.w(207), u.h(139));
         content.add(listView.component());
         JButton okButton = new JButton(lang.ok);
         JButton cancelButton = new JButton(lang.cancel);
-        JButton browseButton = new JButton("Browse...");
+        JButton browseButton = new JButton(lang.browsefolder);
         content.add(okButton);
         content.add(cancelButton);
         content.add(browseButton);
 
-        okButton.setBounds(u.w(140),u.h(151),u.w(60),u.h(14));
+        okButton.setBounds(u.w(113),u.h(151),u.w(50),u.h(14));
         okButton.addActionListener(e -> {
             if (listView.getSelectedItem() != null) {
                 result.complete(Optional.of(listView.getSelectedItem().id()));
             }
         });
-        cancelButton.setBounds(u.w(75),u.h(151),u.w(60),u.h(14));
+        cancelButton.setBounds(u.w(58),u.h(151),u.w(50),u.h(14));
         cancelButton.addActionListener(e -> result.complete(Optional.empty()));
-        browseButton.setBounds(u.w(10), u.h(151), u.w(60), u.h(14));
+        browseButton.setBounds(u.w(7), u.h(151), u.w(50), u.h(14));
         browseButton.addActionListener(e -> browseForFolder().ifPresent(d -> result.complete(Optional.of(d))));
 
         dialog.addWindowListener(new WindowAdapter() {
@@ -95,18 +95,20 @@ public class DriveDialogController {
         chooser.setDialogTitle(lang.selectdrive);
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         chooser.setAcceptAllFileFilterUsed(false);
-        int choice = chooser.showOpenDialog(dialog);
-        if (choice == JFileChooser.APPROVE_OPTION) {
-            Path path = chooser.getSelectedFile().toPath();
-            try {
-                FileStore store = Files.getFileStore(path);
-                long total = store.getTotalSpace();
-                long used = store.getTotalSpace() - store.getUsableSpace();
-                String name = path.getFileName() != null ? path.getFileName().toString() : path.toString();
-                return Optional.of(new Drive(name, path, total, used));
-            } catch (Exception ignored) {
-            }
+
+        if (chooser.showOpenDialog(dialog) != JFileChooser.APPROVE_OPTION) {
+            return Optional.empty();
         }
-        return Optional.empty();
+
+        Path path = chooser.getSelectedFile().toPath();
+        try {
+            FileStore store = Files.getFileStore(path);
+            long total = store.getTotalSpace();
+            long used = total - store.getUsableSpace();
+            String name = path.getFileName() != null ? path.getFileName().toString() : path.toString();
+            return Optional.of(new Drive(name, path, total, used));
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
     }
 }
