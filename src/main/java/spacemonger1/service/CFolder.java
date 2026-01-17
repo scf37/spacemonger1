@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinTask;
 import java.util.stream.Collectors;
 
@@ -36,15 +35,13 @@ public class CFolder {
         actualsizes[cur] = actualSize;
         times[cur] = time;
         sizeSelf += size;
-        if (!name.startsWith(">>>>")) { // 'free space' file
-            tree.filespace += size;
+        synchronized (tree) {
+            if (!name.startsWith(">>>>")) { // 'free space' file
+                tree.filespace += size;
+            }
+            tree.numfiles++;
         }
-
         cur++;
-        tree.numfiles++;
-        if (tree.filespace > tree.totalspace) {
-            System.out.println(name);
-        }
     }
 
     public void AddFolder(CFolderTree tree, String name, CFolder folder, long time) {
@@ -58,7 +55,9 @@ public class CFolder {
         folder.parent = this;
         folder.parentindex = cur;
         cur++;
-        tree.numfolders++;
+        synchronized (tree) {
+            tree.numfolders++;
+        }
     }
 
     public void Finalize() {
@@ -194,7 +193,7 @@ public class CFolder {
                         newFolder.LoadFolder(tree, file.toString(), volumeId);
                         return newFolder;
                     });
-                    tree.pool().execute(task);
+                    task.fork();
                     childJobs.add(new ChildJob(fileName, task, info.updateTimeMs()));
                 } else if (info.isFile()) {
                     long actualsize = info.logicalSize();
@@ -241,5 +240,5 @@ public class CFolder {
     public int cur;
     public int max;
 
-    private volatile long lastStatus = System.nanoTime();
+    private static volatile long lastStatus = System.nanoTime();
 }
