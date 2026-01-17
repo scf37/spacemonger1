@@ -1,16 +1,18 @@
 package spacemonger1.service;
 
 import spacemonger1.fs.FileInfo;
+import spacemonger1.fs.FileSystems;
 import spacemonger1.fs.Volume;
 
 import java.io.IOException;
-import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.RecursiveTask;
 import java.util.stream.Collectors;
 
 public class CFolder {
@@ -27,25 +29,17 @@ public class CFolder {
         parentindex = 0;
     }
 
-    public void AddFile(CFolderTree tree, String name, long size, long actualSize, long time) {
+    public void AddFile(String name, long size, long actualSize, long time) {
         if (cur >= max) MoreEntries();
         names[cur] = name;
         sizes[cur] = size;
         actualsizes[cur] = actualSize;
         times[cur] = time;
         sizeSelf += size;
-        if (!name.startsWith(">>>>")) { // 'free space' file
-            tree.filespace += size;
-        }
-
         cur++;
-        tree.numfiles++;
-        if (tree.filespace > tree.totalspace) {
-            System.out.println(name);
-        }
     }
 
-    public void AddFolder(CFolderTree tree, String name, CFolder folder, long time) {
+    public void AddFolder(String name, CFolder folder, long time) {
         if (cur >= max) MoreEntries();
         names[cur] = name;
         sizes[cur] = folder.SizeTotal();
@@ -56,7 +50,6 @@ public class CFolder {
         folder.parent = this;
         folder.parentindex = cur;
         cur++;
-        tree.numfolders++;
     }
 
     public void Finalize() {
@@ -80,11 +73,11 @@ public class CFolder {
         EightBitCountingSort(sizes, newsizes, cur, 56, names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes);
     }
 
-    public void LoadFolderInitial(CFolderTree tree, String name, long clusterSize) {
-        name = Paths.get(name).toAbsolutePath().toString();
-        var info = tree.fileSystems.fileInfo(Paths.get(name));
-        if (info == null) return;
-        LoadFolder(tree, name, info.volumeId());
+    public static CFolder LoadFolderInitial(String name, FileSystems fileSystems, Control control) {
+        Path path = Paths.get(name).toAbsolutePath();
+        var info = fileSystems.fileInfo(path);
+        if (info == null) return new CFolder();
+        return new CFolderLoader(path, info.volumeId(), fileSystems, control).invoke();
     }
 
     public long SizeFiles() {
@@ -159,56 +152,6 @@ public class CFolder {
         }
     }
 
-    private void LoadFolder(CFolderTree tree, String name, Volume.Id volumeId) {
-        if (tree.cancelled) return;
-        updateStatus(tree, Paths.get(name));
-        try {
-            List<Path> list;
-            try (var stream = Files.list(Paths.get(name))) {
-                list = stream.collect(Collectors.toList());
-            }
-            Collections.sort(list);
-
-            list.forEach(file -> {
-                if (tree.cancelled) throw new CancellationException();
-                String fileName = file.getFileName().toString();
-                if (fileName.equals(".") || fileName.equals("..")) return;
-                FileInfo info = tree.fileSystems.fileInfo(file);
-                if (info == null) return;
-
-                // deduplicate hardlinks
-                if (!tree.knownFiles.add(info.id())) {
-                    return;
-                }
-
-                if (info.isDirectory()) {
-                    if (!info.volumeId().equals(volumeId)) return;
-
-                    CFolder newFolder = new CFolder();
-                    newFolder.LoadFolder(tree, file.toString(), volumeId);
-                    AddFolder(tree, fileName, newFolder, info.updateTimeMs());
-                } else if (info.isFile()) {
-                    long actualsize = info.logicalSize();
-                    long size = info.physicalSize();
-                    AddFile(tree, fileName, size, actualsize, info.updateTimeMs());
-                }
-            });
-        } catch (IOException e) {
-        } catch (CancellationException e) {
-        } finally {
-            Finalize();
-        }
-    }
-
-    private void updateStatus(CFolderTree tree, Path path) {
-        long now = System.nanoTime();
-        long elapsedMs = (now - lastStatus) / 1_000_000;
-        if (elapsedMs > 100) {
-            lastStatus = now;
-            tree.updateStatus(path.toString(), false);
-        }
-    }
-
     // Public fields (Java style typically uses private + getters/setters, but matching C++ public access)
     public CFolder parent;
     public int parentindex;
@@ -224,5 +167,77 @@ public class CFolder {
     public int cur;
     public int max;
 
-    private static volatile long lastStatus = System.nanoTime();
+    public interface Control {
+        boolean cancelled();
+        /// @return false if file is already known
+        boolean addKnownFile(FileInfo.Id fileId);
+        void addFile(long size);
+        void addFolder();
+        void updateStatus(Path path);
+    }
+
+    static class CFolderLoader extends RecursiveTask<CFolder> {
+        private final Path path;
+        private final Volume.Id volumeId;
+        private final FileSystems fileSystems;
+        private final Control control;
+
+        CFolderLoader(Path path, Volume.Id volumeId, FileSystems fileSystems, Control control) {
+            this.path = path;
+            this.volumeId = volumeId;
+            this.fileSystems = fileSystems;
+            this.control = control;
+        }
+
+        @Override
+        protected CFolder compute() {
+            CFolder folder = new CFolder();
+            if (control.cancelled()) return folder;
+            control.updateStatus(path);
+            try {
+                List<Path> list;
+                try (var stream = Files.list(path)) {
+                    list = stream.collect(Collectors.toList());
+                }
+                Collections.sort(list);
+
+                record LoaderTask(CFolderLoader loader, String fileName, long updateTimeMs) { }
+                List<LoaderTask> loaderTasks = new ArrayList<>();
+                for (var file: list) {
+                    if (control.cancelled()) throw new CancellationException();
+                    String fileName = file.getFileName().toString();
+                    if (fileName.equals(".") || fileName.equals("..")) continue;
+                    FileInfo info = fileSystems.fileInfo(file);
+                    if (info == null) continue;
+
+                    // deduplicate hardlinks
+                    if (!control.addKnownFile(info.id())) {
+                        continue;
+                    }
+
+                    if (info.isDirectory()) {
+                        if (!info.volumeId().equals(volumeId)) continue;
+                        CFolderLoader newFolderLoader = new CFolderLoader(file, volumeId, fileSystems, control);
+                        newFolderLoader.fork();
+                        loaderTasks.add(new LoaderTask(newFolderLoader, fileName, info.updateTimeMs()));
+                    } else if (info.isFile()) {
+                        long actualsize = info.logicalSize();
+                        long size = info.physicalSize();
+                        folder.AddFile(fileName, size, actualsize, info.updateTimeMs());
+                        control.addFile(size);
+                    }
+                }
+
+                for (var loaderTask: loaderTasks) {
+                    folder.AddFolder(loaderTask.fileName(), loaderTask.loader.join(), loaderTask.updateTimeMs());
+                    control.addFolder();
+                }
+            } catch (IOException e) {
+            } catch (CancellationException e) {
+            } finally {
+                folder.Finalize();
+            }
+            return folder;
+        }
+    }
 }

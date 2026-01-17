@@ -4,13 +4,46 @@ import spacemonger1.controller.Drive;
 import spacemonger1.fs.FileInfo;
 import spacemonger1.fs.FileSystems;
 
-import java.util.HashSet;
+import java.nio.file.Path;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 
 public class CFolderTree {
-    public final FileSystems fileSystems;
+    private final FileSystems fileSystems;
+    private Set<FileInfo.Id> knownFiles = ConcurrentHashMap.newKeySet();
+
     private volatile Status status = new Status(0, 0, "", null, 0);
-    volatile boolean cancelled;
+    private volatile boolean cancelled;
+
+
+    private CFolder.Control control = new CFolder.Control() {
+        @Override
+        public boolean cancelled() {
+            return cancelled;
+        }
+
+        @Override
+        public boolean addKnownFile(FileInfo.Id fileId) {
+            return knownFiles.add(fileId);
+        }
+
+        @Override
+        public void addFile(long size) {
+            numfiles.add(1);
+            filespace.add(size);
+        }
+
+        @Override
+        public void addFolder() {
+            numfolders.add(1);
+        }
+
+        @Override
+        public void updateStatus(Path path) {
+            CFolderTree.this.updateStatus(path.toString(), false);
+        }
+    };
 
     public CFolderTree(FileSystems fileSystems) {
         this.fileSystems = fileSystems;
@@ -26,16 +59,15 @@ public class CFolderTree {
 
     public boolean LoadTree(Drive drive) {
         mPath = drive.rootPath().toString();
-        root = new CFolder();
         cur = root;
-        filespace = 0;
+        filespace.reset();
         totalspace = drive.totalspace();
         usedspace = drive.usedspace();
         freespace = totalspace - usedspace;
 
-        root.LoadFolderInitial(this, mPath, clustersize); // TODO if-else ?
+        root = CFolder.LoadFolderInitial(mPath, fileSystems, control);
 
-        root.AddFile(this, "<<<<<<<<<<<<<<<<<<<<", freespace, freespace, 0);
+        root.AddFile("<<<<<<<<<<<<<<<<<<<<", freespace, freespace, 0);
         root.Finalize();
         updateStatus(status.currentPath, true);
         knownFiles = null;
@@ -80,9 +112,15 @@ public class CFolderTree {
     }
 
     void updateStatus(String path, boolean done) {
-        status = new Status(numfiles, numfolders, path, done?this:null, Double.valueOf(filespace) / totalspace);
+        long now = System.nanoTime();
+        long elapsedMs = (now - lastStatus) / 1_000_000;
+        if (elapsedMs > 100 || done) {
+            lastStatus = now;
+            status = new Status(numfiles.longValue(), numfolders.longValue(), path, done?this:null, Double.valueOf(filespace.longValue()) / totalspace);
+        }
     }
 
+    private volatile long lastStatus = 0;
     protected CFolder root;
     protected CFolder cur;
 
@@ -90,10 +128,7 @@ public class CFolderTree {
     public long freespace;
     public long usedspace;
     public long totalspace;
-    public long clustersize;
-    public long numfiles; // TODO set from the dialog
-    public long numfolders; // TODO set from the dialog
-    public long filespace;
-
-    public Set<FileInfo.Id> knownFiles = new HashSet<>();
+    public LongAdder numfiles = new LongAdder();
+    public LongAdder numfolders = new LongAdder();
+    public LongAdder filespace = new LongAdder();
 }
