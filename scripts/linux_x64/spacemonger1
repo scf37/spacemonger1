@@ -1,0 +1,3 @@
+#!/bin/sh
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$SCRIPT_DIR/bin/java" -XX:+UseSerialGC --enable-native-access=spacemonger -m spacemonger/spacemonger1.App 

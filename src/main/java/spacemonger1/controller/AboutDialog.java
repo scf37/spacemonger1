@@ -19,7 +19,7 @@ public class AboutDialog extends JDialog {
 
         Icon icon = null;
         try {
-            icon = new ImageIcon(ImageIO.read(getClass().getClassLoader().getResourceAsStream("SpaceMonger.png")));
+            icon = new ImageIcon(ImageIO.read(getClass().getClassLoader().getResourceAsStream("SpaceMonger_hres.png")).getScaledInstance(32, 32, Image.SCALE_SMOOTH));
         } catch (IOException e) {
         }
         JLabel iconLabel = new JLabel(icon);
@@ -31,7 +31,7 @@ public class AboutDialog extends JDialog {
 
         JLabel title = new JLabel("SpaceMonger One 1.0.0");
         title.setFont(title.getFont().deriveFont(Font.BOLD, title.getFont().getSize2D() + 2));
-        JLabel author = new JLabel("Scf37 (C) 2025");
+        JLabel author = new JLabel("Scf37 (C) 2025-2026");
 
         JLabel link = new JLabel("<html><a href=''>https://github.com/scf37/spacemonger1</a></html>");
         link.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -63,8 +63,13 @@ public class AboutDialog extends JDialog {
         textPanel.add(Box.createVerticalStrut(24));
         textPanel.add(copyright);
 
+        JPanel leftColumn = new JPanel();
+        leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
+        leftColumn.add(iconLabel);
+        leftColumn.add(Box.createVerticalGlue());
+
         JPanel leftRight = new JPanel(new BorderLayout());
-        leftRight.add(iconLabel, BorderLayout.WEST);
+        leftRight.add(leftColumn, BorderLayout.WEST);
         leftRight.add(textPanel, BorderLayout.CENTER);
 
         content.add(leftRight, BorderLayout.CENTER);
