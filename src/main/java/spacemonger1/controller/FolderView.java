@@ -255,7 +255,7 @@ public class FolderView {
             rootfolder = null;
         }
         zoomlevel = 0;
-        onUpdate(null);
+        onUpdate();
         UpdateTitleBar();
         onSize(0, getWidth(), getHeight());
         repaint();
@@ -366,7 +366,7 @@ public class FolderView {
                 parent = parent.parent;
             }
 
-            onUpdate(doc);
+            onUpdate();
             UpdateTitleBar();
         });
 
@@ -474,7 +474,7 @@ public class FolderView {
 
             AnimateBox(start, end, () -> {
                 zoomlevel--;
-                onUpdate(doc);
+                onUpdate();
                 UpdateTitleBar();
             });
 
@@ -501,7 +501,7 @@ public class FolderView {
 
         AnimateBox(start, end, () -> {
             zoomlevel = 0;
-            onUpdate(doc);
+            onUpdate();
             UpdateTitleBar();
         });
     }
@@ -752,7 +752,7 @@ public class FolderView {
     }
 
 
-    public void onUpdate(CFolderTree doc) {
+    public void onUpdate() {
         UpdateTitleBar();
 
         onSize(0, getWidth(), getHeight());

@@ -175,7 +175,7 @@ public class AppController {
             @Override
             public void toggleFreeSpace() {
                 showFreeSpace = !showFreeSpace;
-                folderView.onUpdate(null);
+                folderView.onUpdate();
             }
         }, frame);
 
@@ -219,7 +219,7 @@ public class AppController {
             settingsService.save(settings);
             lang = langService.byCode(settings.lang());
             toolbar.reloadText();
-            folderView.onUpdate(null);
+            folderView.onUpdate();
             updateToolbarState();
             frame.repaint();
         }).show();
@@ -249,9 +249,10 @@ public class AppController {
         }
     }
 
-    private void onFreeSpace(Boolean aBoolean) {
+    private void onFreeSpace(boolean aBoolean) {
         showFreeSpace = aBoolean;
-        folderView.onUpdate(tree);
+        updateToolbarState();
+        folderView.onUpdate();
     }
 
     private void onZoomOut() {
@@ -267,7 +268,7 @@ public class AppController {
     }
 
     private void onReload() {
-        onDriveSelected(selectedDrive);
+        setSelectedDrive(selectedDrive);
     }
 
     private void onOpen() {
@@ -278,7 +279,14 @@ public class AppController {
         });
     }
 
-    private void onDriveSelected(Drive drive) {
+    private void onDriveSelected(DriveDialogController.DriveDialogResult selectionResult) {
+        if (!selectionResult.isDriveSelected()) {
+            onFreeSpace(false);
+        }
+        setSelectedDrive(selectionResult.drive());
+    }
+
+    private void setSelectedDrive(Drive drive) {
         selectedDrive = drive;
         tree = null;
         updateToolbarState();
@@ -337,6 +345,8 @@ public class AppController {
         toolbar.enable(ToolbarButtons.FreeSpace, tree != null);
         toolbar.enable(ToolbarButtons.RunOrOpen,  selection != null);
         toolbar.enable(ToolbarButtons.Delete, selection != null && !settings.disable_delete());
+
+        toolbar.toggle(ToolbarButtons.FreeSpace, showFreeSpace);
     }
 
     private enum ToolbarButtons {

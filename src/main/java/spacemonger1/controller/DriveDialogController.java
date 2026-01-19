@@ -29,6 +29,11 @@ public class DriveDialogController {
 
     private JDialog dialog;
 
+    public record DriveDialogResult(
+            Drive drive,
+            boolean isDriveSelected
+    ) { }
+
     public DriveDialogController(DialogUnitsService dialogUnitsService, JFrame owner, List<Drive> drives, Lang lang) {
         this.dialogUnitsService = dialogUnitsService;
         this.owner = owner;
@@ -36,8 +41,8 @@ public class DriveDialogController {
         this.lang = lang;
     }
 
-    public CompletableFuture<Optional<Drive>> show() {
-        CompletableFuture<Optional<Drive>> result = new  CompletableFuture<>();
+    public CompletableFuture<Optional<DriveDialogResult>> show() {
+        CompletableFuture<Optional<DriveDialogResult>> result = new  CompletableFuture<>();
         dialog = new JDialog(owner, true);
         var u = dialogUnitsService.compute(new JLabel().getFont());
 
@@ -49,7 +54,7 @@ public class DriveDialogController {
             drives.stream().map(drive -> new ListView.Item<>(drive, Utils.iconByPath(drive.rootPath()), drive.name())).toList(),
             u.w(60), u.h(40),
             drive -> {
-                result.complete(Optional.of(drive.id()));
+                result.complete(Optional.of(new DriveDialogResult(drive.id(), true)));
             }
         );
         JPanel content = new JPanel(null);
@@ -66,16 +71,16 @@ public class DriveDialogController {
         content.add(okButton);
         content.add(cancelButton);
         
-        browseButton.setBounds(u.w(4), u.h(151), u.w(50), u.h(14));
-        browseButton.addActionListener(e -> browseForFolder().ifPresent(d -> result.complete(Optional.of(d))));
+        browseButton.setBounds(u.w(31), u.h(151), u.w(50), u.h(14));
+        browseButton.addActionListener(e -> browseForFolder().ifPresent(d -> result.complete(Optional.of(new DriveDialogResult(d, false)))));
 
-        okButton.setBounds(u.w(113),u.h(151),u.w(50),u.h(14));
+        okButton.setBounds(u.w(140),u.h(151),u.w(50),u.h(14));
         okButton.addActionListener(e -> {
             if (listView.getSelectedItem() != null) {
-                result.complete(Optional.of(listView.getSelectedItem().id()));
+                result.complete(Optional.of(new DriveDialogResult(listView.getSelectedItem().id(), true)));
             }
         });
-        cancelButton.setBounds(u.w(58),u.h(151),u.w(50),u.h(14));
+        cancelButton.setBounds(u.w(85),u.h(151),u.w(50),u.h(14));
         cancelButton.addActionListener(e -> result.complete(Optional.empty()));
 
         dialog.addWindowListener(new WindowAdapter() {
