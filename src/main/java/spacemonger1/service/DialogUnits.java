@@ -2,7 +2,7 @@ package spacemonger1.service;
 
 public final class DialogUnits {
     private final int width;
-    private final int height; // pixels per vertical dialog unit
+    private final int height;
 
     DialogUnits(int width, int height) {
         this.width = width;

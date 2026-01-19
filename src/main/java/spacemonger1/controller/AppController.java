@@ -71,7 +71,7 @@ public class AppController {
             frame.setLocation(new Point(settings.rect().x, settings.rect().y));
         }
         try {
-            frame.setIconImage(ImageIO.read(getClass().getClassLoader().getResourceAsStream("SpaceMonger.png")));
+            frame.setIconImage(ImageIO.read(getClass().getClassLoader().getResourceAsStream("SpaceMonger_hres.png")));
         } catch (IOException e) {
         }
 
