@@ -39,10 +39,11 @@ public class App {
             folderViewFactory,
             settingsService,
             langService,
-            settingsDialogControllerFactory
+                settingsDialogControllerFactory
         );
 
         appController.init();
 
+        if (args.length == 1) appController.openFolder(args[0]);
     }
 }

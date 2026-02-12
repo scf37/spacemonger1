@@ -22,6 +22,10 @@ import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.IOException;
+import java.nio.file.FileStore;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -196,6 +200,26 @@ public class AppController {
         doLayout();
 
         frame.pack();
+    }
+
+    public void openFolder(String folder) {
+        Drive drive;
+        try {
+            Path path = Paths.get(folder);
+
+            FileStore store = Files.getFileStore(path);
+            long total = store.getTotalSpace();
+            long used = total - store.getUsableSpace();
+            String name = path.getFileName() != null ? path.getFileName().toString() : path.toString();
+            drive = new Drive(name, path, total, used);
+        } catch (Exception ignored) {
+            return;
+        }
+
+        onDriveSelected(new DriveDialogController.DriveDialogResult(
+                drive,
+                false
+        ));
     }
 
     private void saveWindowPos() {
