@@ -36,7 +36,8 @@ public class SettingsService {
         TIP_DATE.code | TIP_SIZE.code | TIP_ICON.code,     // infotip_flags
         250,                                // infotip_delay
 
-        "en_US"                                // lang
+        "en_US",                                // lang
+        false
     );
 
     private static final String KEY_DENSITY = "density";
@@ -63,6 +64,8 @@ public class SettingsService {
     private static final String KEY_INFOTIP_DELAY = "infotip_delay";
 
     private static final String KEY_LANG = "lang";
+
+    private static final String KEY_DARK_MODE = "dark_mode";
 
     public Settings load() {
         Preferences pref = Preferences.userNodeForPackage(App.class);
@@ -94,11 +97,13 @@ public class SettingsService {
 
             String lang = pref.get(KEY_LANG, DefaultSettings.lang());
 
+            boolean darkMode = pref.getBoolean(KEY_DARK_MODE, DefaultSettings.darkMode());
+
             return new Settings(
                 density, fileColor, folderColor, autoRescan, animatedZoom,
                 disableDelete, rolloverBox, bias, savePos, rect, showcmd,
                 showNameTips, nameTipDelay, showInfoTips, infoTipFlags,
-                infoTipDelay, lang
+                infoTipDelay, lang, darkMode
             );
         } catch (Exception e) {
             return DefaultSettings;
@@ -133,6 +138,8 @@ public class SettingsService {
         pref.putInt(KEY_INFOTIP_DELAY, settings.infotip_delay());
 
         pref.put(KEY_LANG, settings.lang());
+
+        pref.putBoolean(KEY_DARK_MODE, settings.darkMode());
 
         // Optional: flush to disk immediately (usually not needed)
         // try { pref.flush(); } catch (Exception ignored) {}

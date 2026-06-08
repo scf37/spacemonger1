@@ -6,6 +6,7 @@ import spacemonger1.controller.FolderDialogControllerFactory;
 import spacemonger1.controller.FolderViewFactory;
 import spacemonger1.controller.SettingsDialogControllerFactory;
 import spacemonger1.fs.FileSystems;
+import spacemonger1.service.ColorService;
 import spacemonger1.service.DialogUnitsService;
 import spacemonger1.service.DrivesService;
 import spacemonger1.service.FormatService;
@@ -25,10 +26,11 @@ public class App {
         LangService langService = new LangService();
         SettingsService settingsService = new SettingsService();
         DialogUnitsService dialogUnitsService = new DialogUnitsService();
+        ColorService colorService = new ColorService();
 
         DriveDialogControllerFactory driveDialogControllerFactory = new DriveDialogControllerFactory(drivesService, dialogUnitsService);
         FolderDialogControllerFactory folderDialogControllerFactory = new FolderDialogControllerFactory(dialogUnitsService);
-        FolderViewFactory folderViewFactory = new FolderViewFactory(formatService);
+        FolderViewFactory folderViewFactory = new FolderViewFactory(formatService, colorService);
         SettingsDialogControllerFactory settingsDialogControllerFactory = new SettingsDialogControllerFactory(langService, dialogUnitsService);
 
         AppController appController = new AppController(
@@ -39,7 +41,8 @@ public class App {
             folderViewFactory,
             settingsService,
             langService,
-                settingsDialogControllerFactory
+            settingsDialogControllerFactory,
+            colorService
         );
 
         appController.init();

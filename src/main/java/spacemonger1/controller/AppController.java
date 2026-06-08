@@ -3,6 +3,7 @@ package spacemonger1.controller;
 import spacemonger1.component.Toolbar;
 import spacemonger1.fs.FileSystems;
 import spacemonger1.service.CFolderTree;
+import spacemonger1.service.ColorService;
 import spacemonger1.service.Lang;
 import spacemonger1.service.LangService;
 import spacemonger1.service.Settings;
@@ -41,6 +42,7 @@ public class AppController {
     private final SettingsService settingsService;
     private final LangService langService;
     private final SettingsDialogControllerFactory settingsDialogControllerFactory;
+    private final ColorService colorService;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -55,7 +57,7 @@ public class AppController {
     private Drive selectedDrive;
     private Settings settings;
 
-    public AppController(ToolbarIconsService toolbarIconsService, DriveDialogControllerFactory driveDialogFactory, FolderDialogControllerFactory folderDialogControllerFactory, FileSystems fileSystems, FolderViewFactory folderViewFactory, SettingsService settingsService, LangService langService, SettingsDialogControllerFactory settingsDialogControllerFactory) {
+    public AppController(ToolbarIconsService toolbarIconsService, DriveDialogControllerFactory driveDialogFactory, FolderDialogControllerFactory folderDialogControllerFactory, FileSystems fileSystems, FolderViewFactory folderViewFactory, SettingsService settingsService, LangService langService, SettingsDialogControllerFactory settingsDialogControllerFactory, ColorService colorService) {
         this.toolbarIconsService = toolbarIconsService;
         this.driveDialogFactory = driveDialogFactory;
         this.folderDialogControllerFactory = folderDialogControllerFactory;
@@ -64,6 +66,7 @@ public class AppController {
         this.settingsService = settingsService;
         this.langService = langService;
         this.settingsDialogControllerFactory = settingsDialogControllerFactory;
+        this.colorService = colorService;
     }
 
     public void init() {
@@ -78,6 +81,8 @@ public class AppController {
             frame.setIconImage(ImageIO.read(getClass().getClassLoader().getResourceAsStream("SpaceMonger_hres.png")));
         } catch (IOException e) {
         }
+
+        colorService.darkMode(settings.darkMode());
 
         frame.setVisible(true);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -107,9 +112,12 @@ public class AppController {
             .button(ToolbarButtons.Setup, icons.at(348), () -> lang.toolbar_setup, this::onSetup)
             .separator()
             .button(ToolbarButtons.About, icons.at(392), () -> lang.toolbar_about, this::onAbout)
+            .separator()
+            .toggle(ToolbarButtons.DarkMode, icons.at(419), () -> "", this::onDarkMode)
             .build();
 
         toolbar.toggle(ToolbarButtons.FreeSpace, showFreeSpace);
+        toolbar.toggle(ToolbarButtons.DarkMode, settings.darkMode());
         content.add(toolbar.component());
 
         toolbar.component().setBounds(0, 0, 1200, toolbar.component().getPreferredSize().height);
@@ -202,6 +210,7 @@ public class AppController {
         frame.pack();
     }
 
+
     public void openFolder(String folder) {
         Drive drive;
         try {
@@ -236,6 +245,14 @@ public class AppController {
     private void onAbout() {
         new AboutDialog(frame).setVisible(true);
     }
+
+    private void onDarkMode(boolean darkMode) {
+        colorService.darkMode(darkMode);
+        settings = settings.withDarkMode(darkMode);
+        settingsService.save(settings);
+        content.repaint();
+    }
+
 
     private void onSetup() {
         settingsDialogControllerFactory.newInstance(frame, settings, lang, s -> {
@@ -374,6 +391,6 @@ public class AppController {
     }
 
     private enum ToolbarButtons {
-        Open, Reload, ZoomFull, ZoomIn, ZoomOut, FreeSpace, RunOrOpen, Delete, Setup, About
+        Open, Reload, ZoomFull, ZoomIn, ZoomOut, FreeSpace, RunOrOpen, Delete, Setup, About, DarkMode
     }
 }

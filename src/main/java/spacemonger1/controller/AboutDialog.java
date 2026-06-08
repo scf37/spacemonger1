@@ -29,7 +29,7 @@ public class AboutDialog extends JDialog {
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
         textPanel.setOpaque(false);
 
-        JLabel title = new JLabel("SpaceMonger One 1.0.0");
+        JLabel title = new JLabel("SpaceMonger One 1.0.2");
         title.setFont(title.getFont().deriveFont(Font.BOLD, title.getFont().getSize2D() + 2));
         JLabel author = new JLabel("Scf37 (C) 2025-2026");
 

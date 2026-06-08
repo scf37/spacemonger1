@@ -4,6 +4,7 @@ import spacemonger1.Utils;
 import spacemonger1.component.Tooltip;
 import spacemonger1.service.CFolder;
 import spacemonger1.service.CFolderTree;
+import spacemonger1.service.ColorService;
 import spacemonger1.service.DisplayFolder;
 import spacemonger1.service.FormatService;
 import spacemonger1.service.Lang;
@@ -38,17 +39,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static spacemonger1.service.TipSettings.TIP_ATTRIB;
-import static spacemonger1.service.TipSettings.TIP_DATE;
-import static spacemonger1.service.TipSettings.TIP_ICON;
-import static spacemonger1.service.TipSettings.TIP_NAME;
-import static spacemonger1.service.TipSettings.TIP_PATH;
-import static spacemonger1.service.TipSettings.TIP_SIZE;
+import static spacemonger1.service.TipSettings.*;
 
 public class FolderView {
-    private static final Color SYS_COLOR_3DFACE = SystemColor.control;
-    private static final Color SYS_COLOR_3DHILIGHT = SystemColor.controlHighlight; // or brighter
-    private static final Color SYS_COLOR_3DSHADOW  = SystemColor.controlShadow;
 
     public interface AppCommands {
         void setTitle(String title);
@@ -82,80 +75,10 @@ public class FolderView {
         long size
     ) { }
 
-    private static final Color[] BoxColors = {
-        new Color(0xFF, 0x7F, 0x7F),
-        new Color(0xFF, 0xBF, 0x7F),
-        new Color(0xFF, 0xFF, 0x00),
-        new Color(0x7F, 0xFF, 0x7F),
-        new Color(0x7F, 0xFF, 0xFF),
-        new Color(0xBF, 0xBF, 0xFF),
-        new Color(0xBF, 0xBF, 0xBF),
-        new Color(0xFF, 0x7F, 0xFF),
-
-        new Color(0xFF, 0xBF, 0xBF),
-        new Color(0xFF, 0xDF, 0xBF),
-        new Color(0xFF, 0xFF, 0xBF),
-        new Color(0xBF, 0xFF, 0xBF),
-        new Color(0xDF, 0xFF, 0xFF),
-        new Color(0xDF, 0xDF, 0xFF),
-        new Color(0xDF, 0xDF, 0xDF),
-        new Color(0xFF, 0xBF, 0xFF),
-
-        new Color(0xBF, 0x7F, 0x7F),
-        new Color(0xBF, 0x9F, 0x5F),
-        new Color(0xBF, 0xBF, 0x3F),
-        new Color(0x7F, 0xBF, 0x7F),
-        new Color(0x7F, 0xBF, 0xBF),
-        new Color(0x9F, 0x9F, 0xFF),
-        new Color(0x9F, 0x9F, 0x9F),
-        new Color(0xBF, 0x7F, 0xBF),
-
-        new Color(0x00, 0x00, 0x00),
-        new Color(0xFF, 0xFF, 0xFF),
-    };
-
-    // These colors are used for specifically-chosen folder colors.
-    private static final  Color[] FixedColors = {
-        new Color(0xFF, 0xFF, 0xFF),
-        new Color(0xBF, 0xBF, 0xBF),
-        new Color(0x7F, 0x7F, 0x7F),
-
-        new Color(0xFF, 0x7F, 0x7F),
-        new Color(0xFF, 0xBF, 0x7F),
-        new Color(0xFF, 0xFF, 0x00),
-        new Color(0x7F, 0xFF, 0x7F),
-        new Color(0x7F, 0xFF, 0xFF),
-        new Color(0xBF, 0xBF, 0xFF),
-        new Color(0xFF, 0x7F, 0xFF),
-
-        new Color(0xFF, 0xFF, 0xFF),
-        new Color(0xFF, 0xFF, 0xFF),
-        new Color(0xBF, 0xBF, 0xBF),
-
-        new Color(0xFF, 0x9F, 0x9F),
-        new Color(0xFF, 0xDF, 0xBF),
-        new Color(0xFF, 0xFF, 0xBF),
-        new Color(0xBF, 0xFF, 0xBF),
-        new Color(0xDF, 0xFF, 0xFF),
-        new Color(0xDF, 0xDF, 0xFF),
-        new Color(0xFF, 0xBF, 0xFF),
-
-        new Color(0xBF, 0xBF, 0xBF),
-        new Color(0x7F, 0x7F, 0x7F),
-        new Color(0x3F, 0x3F, 0x3F),
-
-        new Color(0xBF, 0x7F, 0x7F),
-        new Color(0xBF, 0x9F, 0x9F),
-        new Color(0xBF, 0xBF, 0x3F),
-        new Color(0x7F, 0xBF, 0x7F),
-        new Color(0x7F, 0xBF, 0xBF),
-        new Color(0x9F, 0x9F, 0xFF),
-        new Color(0xBF, 0x7F, 0xBF),
-    };
-
-    public FolderView(AppCommands appCommands, FormatService formatService, Container parent) {
+    public FolderView(AppCommands appCommands, FormatService formatService, ColorService colorService, Container parent) {
         this.appCommands = appCommands;
         this.formatService = formatService;
+        this.colorService = colorService;
         this.component = new JComponent() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -174,7 +97,7 @@ public class FolderView {
         m_nametipwnd = Tooltip.create(component, minifont);
 
         component.setLayout(null);
-        component.setBackground(Color.WHITE);
+        component.setBackground(colorService.backgroundColor());
 
         component.addMouseListener(new MouseAdapter() {
             @Override
@@ -564,9 +487,9 @@ public class FolderView {
 
         g.setFont(minifont);
 
-        drawBox(gg, SYS_COLOR_3DFACE, 0, 0, getWidth(), getHeight());
+        drawBox(gg, colorService.backgroundColor(), 0, 0, getWidth(), getHeight());
         if (cur == null)
-            fillBox(gg, SYS_COLOR_3DFACE, 1, 1, getWidth()-2, getHeight()-2);
+            fillBox(gg, colorService.backgroundColor(), 1, 1, getWidth()-2, getHeight()-2);
 
         while (cur != null) {
             minimalDrawDisplayFolder(gg, cur, selected == cur);
@@ -958,7 +881,7 @@ public class FolderView {
 
         // Draw outer black box if depth != -1
         if (cur.depth != -1) {
-            drawBox(g, Color.BLACK, x, y, w, h);
+            drawBox(g, colorService.borderColor(), x, y, w, h);
         }
 
         if (w > 2 && h > 2) {
@@ -968,36 +891,36 @@ public class FolderView {
                 : appCommands.settings().file_color();
 
             if (sel && (cur.flags & 2) == 0) {
-                color = bright = dark = Color.BLACK;
+                color = bright = dark = colorService.textColor();
             } else if (cur.depth != -1) {
                 if (colortype == 0) {
                     int idx = cur.depth & 7;
-                    color = BoxColors[idx];
-                    bright = BoxColors[idx + 8];
-                    dark = BoxColors[idx + 16];
+                    color = colorService.boxColors()[idx];
+                    bright = colorService.boxColors()[idx + 8];
+                    dark = colorService.boxColors()[idx + 16];
                 } else if (colortype == 1) {
-                    color = SYS_COLOR_3DFACE;
-                    bright = SYS_COLOR_3DHILIGHT;
-                    dark = SYS_COLOR_3DSHADOW;
+                    color = SystemColor.control;
+                    bright = SystemColor.controlHighlight;
+                    dark = SystemColor.controlShadow;
                 } else {
                     int base = colortype - 2;
-                    color = FixedColors[base];
-                    bright = FixedColors[base + 10];
-                    dark = FixedColors[base + 20];
+                    color = colorService.fixedColors()[base];
+                    bright = colorService.fixedColors()[base + 10];
+                    dark = colorService.fixedColors()[base + 20];
                 }
 
                 if (appCommands.settings().rollover_box()) {
                     if ((cur.flags & 4) != 0) {
                         dark = color;
                         color = bright;
-                        bright = Color.WHITE;
+                        bright = colorService.backgroundColor();
                     } else {
                         bright = color;
                         color = dark;
                     }
                 }
             } else {
-                color = bright = dark = SYS_COLOR_3DFACE;
+                color = bright = dark = colorService.backgroundColor();
             }
 
             // Draw inner dual-color frame
@@ -1062,21 +985,21 @@ public class FolderView {
                 // So we compute baseline = ty + ascent
                 int ascent = fm.getAscent();
 
-                g.setColor(sel ? Color.WHITE : Color.BLACK);
-                g.drawString(freespaceStr, tx, ty - 18 + ascent);
+                g.setColor(sel ? colorService.backgroundColor() : colorService.textColor());
+                drawString(g, freespaceStr, tx, ty - 18 + ascent);
 
                 String freeLine = formatService.getSizeString(appCommands.lang(), ft.freespace, ft.totalspace, false) + " " + appCommands.lang().free;
-                g.drawString(freeLine, tx, ty - 6 + ascent);
+                drawString(g, freeLine, tx, ty - 6 + ascent);
 
                 String filesLine = appCommands.lang().files_total + "  " + ft.numfiles;
-                g.drawString(filesLine, tx, ty + 6 + ascent);
+                drawString(g, filesLine, tx, ty + 6 + ascent);
 
                 String foldersLine = appCommands.lang().folders_total + "  " + ft.numfolders;
-                g.drawString(foldersLine, tx, ty + 15 + ascent);
+                drawString(g, foldersLine, tx, ty + 15 + ascent);
             } else {
                 if (sel) {
-                    g.setColor(Color.WHITE);
-                } else g.setColor(Color.BLACK);
+                    g.setColor(colorService.backgroundColor());
+                } else g.setColor(colorService.textColor());
 
                 if ((cur.flags & 1) == 0 && h >= 36 && w >= 48) {
                     // Render file size
@@ -1087,9 +1010,9 @@ public class FolderView {
                     int sizeW = (int) Math.ceil(sizeBounds.getWidth());
                     int sizeAscent = fm.getAscent();
                     if (sizeW > w - 2) {
-                        g.drawString(sizeStr, x + 2, ty + 1 + sizeAscent);
+                        drawString(g, sizeStr, x + 2, ty + 1 + sizeAscent);
                     } else {
-                        g.drawString(sizeStr, x + (w - sizeW) / 2, ty + 1 + sizeAscent);
+                        drawString(g, sizeStr, x + (w - sizeW) / 2, ty + 1 + sizeAscent);
                     }
 
                     // Render date
@@ -1099,19 +1022,19 @@ public class FolderView {
                     Rectangle2D dateBounds = fm.getStringBounds(dateStr, g);
                     int dateW = (int) Math.ceil(dateBounds.getWidth());
                     if (dateW > w - 2) {
-                        g.drawString(dateStr, x + 2, ty + 11 + fm.getAscent());
+                        drawString(g, dateStr, x + 2, ty + 11 + fm.getAscent());
                     } else {
-                        g.drawString(dateStr, x + (w - dateW) / 2, ty + 11 + fm.getAscent());
+                        drawString(g, dateStr, x + (w - dateW) / 2, ty + 11 + fm.getAscent());
                     }
 
                     ty -= 12;
                 }
 
-                g.drawString(cur.name, tx, ty + fm.getAscent());
+                drawString(g, cur.name, tx, ty + fm.getAscent());
 
                 if (sel) {
-                    g.setColor(Color.BLACK);
-                } else g.setColor(Color.WHITE);
+                    g.setColor(colorService.textColor());
+                } else g.setColor(colorService.backgroundColor());
             }
 
             // Restore original clip
@@ -1222,6 +1145,8 @@ public class FolderView {
         m_infotipwnd.setAutoPos(true);
         m_infotipwnd.setWindowText(string.toString());
         m_infotipwnd.autoSize();
+        m_infotipwnd.setBgColor(colorService.backgroundColor());
+        m_infotipwnd.setTextColor(colorService.textColor());
         m_infotipwnd.enableWindow(true);
         m_infotipwnd.redrawWindow();
     }
@@ -1276,14 +1201,14 @@ public class FolderView {
 
         // Set tooltip colors
         if (selected == cur) {
-            m_nametipwnd.setBgColor(Color.BLACK);
-            m_nametipwnd.setTextColor(Color.WHITE);
+            m_nametipwnd.setBgColor(colorService.textColor());
+            m_nametipwnd.setTextColor(colorService.backgroundColor());
         } else if ((cur.flags & 4) != 0) {
-            m_nametipwnd.setBgColor(BoxColors[(cur.depth & 7) + 8]);
-            m_nametipwnd.setTextColor(Color.BLACK);
+            m_nametipwnd.setBgColor(colorService.boxColors()[(cur.depth & 7) + 8]);
+            m_nametipwnd.setTextColor(colorService.textColor());
         } else {
-            m_nametipwnd.setBgColor(BoxColors[cur.depth & 7]);
-            m_nametipwnd.setTextColor(Color.BLACK);
+            m_nametipwnd.setBgColor(colorService.boxColors()[cur.depth & 7]);
+            m_nametipwnd.setTextColor(colorService.textColor());
         }
 
         m_nametipwnd.setWindowText(cur.name);
@@ -1293,6 +1218,18 @@ public class FolderView {
 
         m_nametipwnd.enableWindow(true);
         m_nametipwnd.redrawWindow();
+    }
+
+    private void drawString(Graphics2D g, String text, int x, int y) {
+        if (colorService.darkMode()) {
+            Color textColor = g.getColor();
+            if (textColor == colorService.textColor()) {
+                g.setColor(colorService.textShadowColor());
+                g.drawString(text, x + 1, y + 1);
+                g.setColor(textColor);
+            }
+        }
+        g.drawString(text, x, y);
     }
 
     private static void fillBox(Graphics2D g, Color brush, int x, int y, int width, int height) {
@@ -1357,4 +1294,5 @@ public class FolderView {
     private final Font minifont = new Font("SansSerif", Font.PLAIN, 9);
     private final AppCommands appCommands;
     private final FormatService formatService;
+    private final ColorService colorService;
 }

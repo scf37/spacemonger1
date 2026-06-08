@@ -408,7 +408,8 @@ public class SettingsDialogController {
                 showInfoTipsCheck.isSelected(),
                 flags,
                 infoDelay,
-                langService.languages().get(langCombo.getSelectedIndex()).lang_code
+                langService.languages().get(langCombo.getSelectedIndex()).lang_code,
+                initialSettings.darkMode()
             );
 
             onOk.accept(updated);

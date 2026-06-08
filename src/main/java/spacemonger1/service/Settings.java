@@ -23,7 +23,8 @@ public record Settings(
     int infotip_flags,        // Tooltip flags
     int infotip_delay,        // Tip delay, in milliseconds
 
-    String lang            // Language, by two-letter code)
+    String lang,            // Language, by two-letter code)
+    boolean darkMode
 ) {
 
     public Settings withRect(Rectangle rect) {
@@ -44,7 +45,31 @@ public record Settings(
             show_info_tips,
             infotip_flags,
             infotip_delay,
-            lang
+            lang,
+            darkMode
+        );
+    }
+
+    public Settings withDarkMode(boolean darkMode) {
+        return new Settings(
+                density,
+                file_color,
+                folder_color,
+                auto_rescan,
+                animated_zoom,
+                disable_delete,
+                rollover_box,
+                bias,
+                save_pos,
+                rect,
+                showcmd,
+                show_name_tips,
+                nametip_delay,
+                show_info_tips,
+                infotip_flags,
+                infotip_delay,
+                lang,
+                darkMode
         );
     }
 }
