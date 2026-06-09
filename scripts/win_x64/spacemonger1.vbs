@@ -8,7 +8,7 @@ scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 javaExe = fso.BuildPath(scriptDir, "bin\java.exe")
 
 ' Command to run
-cmd = """" & javaExe & """ -XX:+UseSerialGC --enable-native-access=spacemonger -m spacemonger/spacemonger1.App"
+cmd = """" & javaExe & """ -XX:+UseSerialGC -XX:+UseCompactObjectHeaders -XX:NewRatio=5 -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -Xms64M --enable-native-access=spacemonger -m spacemonger/spacemonger1.App"
 
 ' Run it hidden (0 = hidden window, True = wait until exit)
 shell.Run cmd, 0, False

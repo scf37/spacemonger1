@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -62,15 +63,17 @@ public class CFolder {
         CFolder[] newkids = new CFolder[cur];
         long[] newtimes = new long[cur];
 
+
+        int[] countarray = new int[257]; // indices 0..256
         // Perform 8 passes (for 64-bit values, 8 bits per pass)
-        EightBitCountingSort(newsizes, sizes, cur, 0,  newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times);
-        EightBitCountingSort(sizes, newsizes, cur, 8,  names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes);
-        EightBitCountingSort(newsizes, sizes, cur, 16, newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times);
-        EightBitCountingSort(sizes, newsizes, cur, 24, names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes);
-        EightBitCountingSort(newsizes, sizes, cur, 32, newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times);
-        EightBitCountingSort(sizes, newsizes, cur, 40, names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes);
-        EightBitCountingSort(newsizes, sizes, cur, 48, newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times);
-        EightBitCountingSort(sizes, newsizes, cur, 56, names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes);
+        EightBitCountingSort(newsizes, sizes, cur, 0,  newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times, countarray);
+        EightBitCountingSort(sizes, newsizes, cur, 8,  names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes, countarray);
+        EightBitCountingSort(newsizes, sizes, cur, 16, newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times, countarray);
+        EightBitCountingSort(sizes, newsizes, cur, 24, names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes, countarray);
+        EightBitCountingSort(newsizes, sizes, cur, 32, newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times, countarray);
+        EightBitCountingSort(sizes, newsizes, cur, 40, names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes, countarray);
+        EightBitCountingSort(newsizes, sizes, cur, 48, newnames, names, newkids, children, newactualsizes, actualsizes, newtimes, times, countarray);
+        EightBitCountingSort(sizes, newsizes, cur, 56, names, newnames, children, newkids, actualsizes, newactualsizes, times, newtimes, countarray);
     }
 
     public static CFolder LoadFolderInitial(String name, FileSystems fileSystems, Control control) {
@@ -119,8 +122,9 @@ public class CFolder {
         String[] dnames, String[] snames,
         CFolder[] dkids, CFolder[] skids,
         long[] dasize, long[] sasize,
-        long[] dtimes, long[] stimes) {
-        final int[] countarray = new int[257]; // indices 0..256
+        long[] dtimes, long[] stimes, int[] countarray) {
+
+        Arrays.fill(countarray, 0);
 
         // VALUE macro as lambda-style inline
         // Note: Java >> is signed; use >>> for logical shift if needed.

@@ -686,6 +686,16 @@ public class FolderView {
         m_nametipwnd.SetShowDelay(appCommands.settings().nametip_delay());
     }
 
+    private static final int[][] FolderMinsizes = {
+            { 96, 64 },
+            { 64, 48 },
+            { 48, 32 },
+            { 32, 24 },
+            { 24, 16 },
+            { 16, 12 },
+            { 8, 6 }
+    };
+
     private void buildFolderLayout(int x, int y, int w, int h, CFolder folder, int depth) {
         if (folder == null) return;
 
@@ -694,20 +704,11 @@ public class FolderView {
             indices[i] = i;
         }
 
-        final int[][] minsizes = {
-            { 96, 64 },
-            { 64, 48 },
-            { 48, 32 },
-            { 32, 24 },
-            { 24, 16 },
-            { 16, 12 },
-            { 8, 6 }
-        };
 
         int idx = appCommands.settings().density() + 3;
 
-        hmin = minsizes[idx][0];
-        vmin = minsizes[idx][1];
+        hmin = FolderMinsizes[idx][0];
+        vmin = FolderMinsizes[idx][1];
 
         sizeFolders(x, y, w, h, folder, indices, folder.cur, depth);
     }

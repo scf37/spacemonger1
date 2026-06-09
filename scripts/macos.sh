@@ -107,7 +107,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 exec "$DIR/../Runtime/bin/java" \
   -Xdock:name="SpaceMonger1" \
   -Xdock:icon="$DIR/../Resources/SpaceMonger1.icns" \
-  -XX:+UseSerialGC \
+  -XX:+UseSerialGC -XX:+UseCompactObjectHeaders -XX:NewRatio=5 -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -Xms64M \
   --enable-native-access=spacemonger \
   -m spacemonger/spacemonger1.App
 EOF
